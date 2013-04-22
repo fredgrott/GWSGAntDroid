@@ -1,0 +1,66 @@
+//author: Fred Grott(http://about.me/fredgrott)
+//license: Apache 2.0 License
+//
+// Watch things:
+//   project.properties props are nonGroovy naming syntax
+//   initAndroid is not MS Windows friendly
+//
+
+// loadProperties{} To load all the properties from
+// properties files.We also load the 
+// keyStore.properties file.
+loadProperties {
+	property(file: 'local.properties')
+	property(file: 'gant.properties')
+	property(file: 'project.properties')
+	property(file: "${ant.project.properties.keystoreDir}/keystore.properties")
+	ant.project.properties
+}
+
+// simple closure to print out the individual 
+// properties of the properties files that were loaded
+// notice what its filtering out
+printProperties = {props ->
+	def sysProps = System.properties.keySet()
+	def names = props.keySet().grep { !(it =~ /^environment/) && !sysProps.contains(it) } as TreeSet
+	names.each {name -> println "${name} : ${props[name]}" }
+}
+
+// Careful ${exe} is not windows exe 
+// but the exectuable..in windows 
+// this closure has to have the 
+// executable extnesions
+initAndroid = {skdhome, target ->
+	def chk = {dir, exe ->
+	def cmd = "${skdhome}/${dir}/${exe}"
+	expectFile cmd
+	cmd
+	}
+	 
+	aapt = chk 'platform-tools', 'aapt'
+	dex = chk 'platform-tools', 'dx'
+	adb = chk 'platform-tools', 'adb'
+	aidl = chk 'platform-tool' , 'aidl'
+	lint = chk 'tools' , 'lint'
+	apk = chk 'tools', 'apkbuilder'
+	zipalign = chk 'tools', 'zipalign'
+	renderscript = chk 'platform-tools' , 'llvm-rs-cc'
+	androidJar = chk "platforms/${version}", 'android.jar'
+	proguardJar = chk "tools/proguard/lib", 'proguard.jar'
+	emmaJar = chk "tools/lib" , 'emma.jar'
+	emmaAntJar = chk "tools/lib" , 'emma.ant.jar'
+	}
+
+target(init : 'Setups the build') {
+	proj = loadProperties()
+    printProperties proj
+	initAndroid proj.androidSkdDir, proj.target
+	initIvyLibDep
+	initAntTaskDefs
+	destDir = createDirs proj.buildDir proj.genDir
+	}
+// I think we need to clean both proj.buildDir and proj.genDir
+target(clean : 'Deletes the  build dir') {
+	proj = loadProperties()
+	deleteDir "${proj.buildDir}", "{proj.genDir}"
+	}
