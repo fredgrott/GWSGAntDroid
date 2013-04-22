@@ -9,6 +9,11 @@
 // loadProperties{} To load all the properties from
 // properties files.We also load the 
 // keyStore.properties file.
+
+includeTool << gant.tools.Ivy
+
+
+
 loadProperties {
 	property(file: 'local.properties')
 	property(file: 'gant.properties')
@@ -50,14 +55,50 @@ initAndroid = {skdhome, target ->
 	emmaJar = chk "tools/lib" , 'emma.jar'
 	emmaAntJar = chk "tools/lib" , 'emma.ant.jar'
 	}
+// check the properties set by loading the properties files
+//if they are not set do log of error and system exit
+checkFileSetProperties{
+	carryOn = true
+	['androidSdkDir', 'buildDir', 'srcDir' , 'keystoreDir'
+		].each { name ->
+           try { binding.getVariable ( name ) }
+           catch ( MissingPropertyException mpe ) {
+             ant.project.log ( "${name} is not defined in a property file." )
+             carryOn = false
+           }
+    }
+		if ( ! carryOn ) {
+			ant.project.log ( 'A required property is not set, so terminating.' )
+			System.exit ( 1 )
+		  }
+}
 
+// Setup Ivy managed Lib deps of project
+initIvyLibDeps{
+	
+}
+
+// Setup ant task defs for the project
+initAntTaskDefs {
+	
+}
+
+// android project preferred properties setup
+initAndroidPrefProperties {
+	
+}
+
+// more modulization of init than a typical ant
+// build setup, makes build easy to read and debug
 target(init : 'Setups the build') {
 	proj = loadProperties()
     printProperties proj
+	checkFileSetProperties
 	initAndroid proj.androidSkdDir, proj.target
 	initIvyLibDep
 	initAntTaskDefs
-	destDir = createDirs proj.buildDir proj.genDir
+	initAndroidPrefProperties
+	destDir = createDirs proj.buildDir genDir
 	}
 // I think we need to clean both proj.buildDir and proj.genDir
 target(clean : 'Deletes the  build dir') {
