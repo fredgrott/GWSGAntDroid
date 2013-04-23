@@ -3,7 +3,7 @@
 //
 // Watch things:
 //   project.properties props are nonGroovy naming syntax
-//   initAndroid is not MS Windows friendly
+//   
 //
 
 // loadProperties{} To load all the properties from
@@ -30,7 +30,23 @@ printProperties = {props ->
 	def names = props.keySet().grep { !(it =~ /^environment/) && !sysProps.contains(it) } as TreeSet
 	names.each {name -> println "${name} : ${props[name]}" }
 }
-
+inittoolsLocation {
+	def androidtoolsDir = "${androidsdkDir}/tools"
+	def androidplatformtoolsDir = "${androidsdkDir}/platform-tools"
+	def ourExe = Ant.condition(property: 'exe', value: 'exe', else: '.'){
+		Ant.os(family:'windows')
+	}
+	def ourBat = Ant.condition(property: 'bat', value: 'bat', else: ''){
+		Ant.os(family: 'windows')
+	}
+	def adbExec = "${androidplatformtoolsDir}/adb${ourExe}"
+	def zipaignExec = "${androidtoolsDir}/zipalign${ourExe}"
+	def aidlExec = "${androidplatformtoolsDir}/aidl${ourExe}"
+	def aaptExec = "${androidplatformtoolsDir|/aapt${ourExe}"
+	def dxExec = "${androidplatformtoolsDir}/dx${outBat}"
+	def rsExec = "${androidplatformtoolsDir}/llvm-rs-cc${ourExe}"
+	def lintExec = "${androidtoolsDir}/lint${ourBat}"
+}
 // Careful ${exe} is not windows exe 
 // but the exectuable..in windows 
 // this closure has to have the 
@@ -42,14 +58,14 @@ initAndroid = {skdhome, target ->
 	cmd
 	}
 	 
-	aapt = chk 'platform-tools', 'aapt'
-	dex = chk 'platform-tools', 'dx'
-	adb = chk 'platform-tools', 'adb'
-	aidl = chk 'platform-tool' , 'aidl'
-	lint = chk 'tools' , 'lint'
+	aapt = chk 'platform-tools', 'aapt${ourExec}'
+	dex = chk 'platform-tools', 'dx${ourBat}'
+	adb = chk 'platform-tools', 'adb${ourExe}'
+	aidl = chk 'platform-tool' , 'aidl${ourExe}'
+	lint = chk 'tools' , 'lint${ourBat}'
 	apk = chk 'tools', 'apkbuilder'
-	zipalign = chk 'tools', 'zipalign'
-	renderscript = chk 'platform-tools' , 'llvm-rs-cc'
+	zipalign = chk 'tools', 'zipalign${ourExe}'
+	renderscript = chk 'platform-tools' , 'llvm-rs-cc${ourExe}'
 	androidJar = chk "platforms/${version}", 'android.jar'
 	proguardJar = chk "tools/proguard/lib", 'proguard.jar'
 	emmaJar = chk "tools/lib" , 'emma.jar'
@@ -146,9 +162,9 @@ initAndroidPrefProperties {
 	
 	def buildmanifestFile = "${buildDir}/AndroidManifest.xml"
 	
-	def androidtoolsDir = "${androidsdkDir}/tools"
+	//def androidtoolsDir = "${androidsdkDir}/tools"
 	
-	def androidplatformtoolsDir ="${androidsdkDir}/platform-tools"
+	//def androidplatformtoolsDir ="${androidsdkDir}/platform-tools"
 	
 }
 
@@ -158,6 +174,7 @@ target(init : 'Setups the build') {
 	proj = loadProperties()
     printProperties proj
 	checkFileSetProperties
+	inittoolsLocation
 	initAndroid proj.androidsdkDir, proj.target
 	initIvyLibDep
 	initAntTaskDefs
