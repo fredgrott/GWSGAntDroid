@@ -1,188 +1,74 @@
-//author: Fred Grott(http://about.me/fredgrott)
-//license: Apache 2.0 License
+// Copyright 2013 Fred Grott-GrottWorkShop
 //
-// Watch things:
-//   project.properties props are nonGroovy naming syntax
-//   
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
 //
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+//  GAnt names are in groovy syntax..ie  camelCase
+//  Ant vars are mostly in camelcase with the exception of 
+//  SDK set vars
 
-// loadProperties{} To load all the properties from
-// properties files.We also load the 
-// keyStore.properties file.
-
-includeTool << gant.tools.Ivy
+defaultTargetName = 'init'
+setDefaultTarget ( defaultTargetName )
 
 
 
-loadProperties {
-	property(file: 'local.properties')
-	property(file: 'gant.properties')
-	property(file: 'project.properties')
-	property(file: "${ant.project.properties.keystoreDir}/keystore.properties")
-	ant.project.properties
-}
-
-// simple closure to print out the individual 
-// properties of the properties files that were loaded
-// notice what its filtering out
-printProperties = {props ->
-	def sysProps = System.properties.keySet()
-	def names = props.keySet().grep { !(it =~ /^environment/) && !sysProps.contains(it) } as TreeSet
-	names.each {name -> println "${name} : ${props[name]}" }
-}
-inittoolsLocation {
-	def androidtoolsDir = "${androidsdkDir}/tools"
-	def androidplatformtoolsDir = "${androidsdkDir}/platform-tools"
-	def ourExe = Ant.condition(property: 'exe', value: 'exe', else: '.'){
-		Ant.os(family:'windows')
-	}
-	def ourBat = Ant.condition(property: 'bat', value: 'bat', else: ''){
-		Ant.os(family: 'windows')
-	}
-	def adbExec = "${androidplatformtoolsDir}/adb${ourExe}"
-	def zipaignExec = "${androidtoolsDir}/zipalign${ourExe}"
-	def aidlExec = "${androidplatformtoolsDir}/aidl${ourExe}"
-	def aaptExec = "${androidplatformtoolsDir|/aapt${ourExe}"
-	def dxExec = "${androidplatformtoolsDir}/dx${outBat}"
-	def rsExec = "${androidplatformtoolsDir}/llvm-rs-cc${ourExe}"
-	def lintExec = "${androidtoolsDir}/lint${ourBat}"
-}
-// Careful ${exe} is not windows exe 
-// but the exectuable..in windows 
-// this closure has to have the 
-// executable extensions
-initAndroid = {skdhome, target ->
-	def chk = {dir, exe ->
-	def cmd = "${skdhome}/${dir}/${exe}"
-	expectFile cmd
-	cmd
-	}
-	 
-	aapt = chk 'platform-tools', 'aapt${ourExec}'
-	dex = chk 'platform-tools', 'dx${ourBat}'
-	adb = chk 'platform-tools', 'adb${ourExe}'
-	aidl = chk 'platform-tool' , 'aidl${ourExe}'
-	lint = chk 'tools' , 'lint${ourBat}'
-	apk = chk 'tools', 'apkbuilder'
-	zipalign = chk 'tools', 'zipalign${ourExe}'
-	renderscript = chk 'platform-tools' , 'llvm-rs-cc${ourExe}'
-	androidJar = chk "platforms/${version}", 'android.jar'
-	proguardJar = chk "tools/proguard/lib", 'proguard.jar'
-	emmaJar = chk "tools/lib" , 'emma.jar'
-	emmaAntJar = chk "tools/lib" , 'emma.ant.jar'
-	}
-// check the properties set by loading the properties files
-//if they are not set do log of error and system exit
-checkFileSetProperties{
-	carryOn = true
-	['androidSdkDir', 'buildDir', 'srcDir' , 'keystoreDir'
-		].each { name ->
-           try { binding.getVariable ( name ) }
-           catch ( MissingPropertyException mpe ) {
-             ant.project.log ( "${name} is not defined in a property file." )
-             carryOn = false
-           }
-    }
-		if ( ! carryOn ) {
-			ant.project.log ( 'A required property is not set, so terminating.' )
-			System.exit ( 1 )
-		  }
-}
-
-// Setup Ivy managed Lib deps of project
-initIvyLibDeps{
-	def projectlibDir = "lib"
-	def classpathRef= 'docletpathRef'
-	def antclasspathRef = 'anttaskpathRef'
-	ivy.retrieve()
-	ivy.cachepath(conf:'doclet',   pathid : classpathRef )
-	//ivy.cachepath(conf:'anttask',pathid: antclasspathRef)
-}
-
-// Setup ant task defs for the project
-initAntTaskDefs {
-	// we need path setup for emma for its taskdef as its from the 
-	// android sdk install
-	def toolslibDir = "${androidsdkDir}/tools/lib"
 	
-	def emmaJars = Ant.path(id: 'emmaJars'){
-		fileset(dir: toolslibDir) {
-			include(name: 'emma.jar')
-			include(name: 'emma.ant.jar')
-	  }
-	}
-	//<taskdef resource="emma_ant.properties" classpathref="emma.lib" />
-	Ant.taskdef(resource:'emma_ant.properties', classpathref: emmaJars)
-	//android antlibs
 	
-	def androidantlibJar = Ant.path(id: 'androidlibJar'){
-		fileset(dir: toolslibDir){
-			include(name: 'anttasks.jar')
+	target(init : 'Setups the build') {
+		// no not using new File we want FileInputStream
+		// local.properties
+		//    androidsdkDir
+		//    keystoreDir
+		//    keyStore
+		//    keyAlias
+		//    keystorePassword
+		//    keyaliasPassword
+		//
+		def props = new Properties()
+		new File("local.properties").withInputStream {
+		   stream -> props.load(stream)
 		}
-	}
-	Ant.taskdef(resource: 'anttasks.properties', classpathref: androidantlibJar)
-	// other taskdefs for any codeqa,etc go below
+		assert  props.("androidsdkDir")
+		assert  props.("keystoreDir")
+		assert  props.("keyStore")
+		assert  props.("keystorePassword")
+		assert  props.("keyAlias")
+		assert  props.("keyaliasPassword")
+		// project.properties
+		
+		new File("project.properties").withInputStream {
+			ourStream -> props.load(ourStream)
+		}
+		assert  props.("target")
+		// ant.properties, remember most of these are blank(null) in
+		// the properties file as they are to be overridden to be used
+		//thus no asserts on them ie:
+		// versionCode
+		// versionName
+		// adbdeviceArg
+		// aaptignoreAssets
+		// aaptresourceFilter
+		//
+		// additional props obviously we have to assert
+		
+		new File("ant.properties").withInputStream {
+			myStream -> props.load(myStream)
+		}
+		// android sdk still uses ant task so we need properties in 
+		// the ant groovy way of things
+		ant.property(file: "local.properties")
+		ant.property(file: 'ant.properties')
+		ant.property(file: 'project.properties')
+		def projectName = ant.property(name: "projectName" , value: "GWSGAntDroid")
+		
+		    
 }
-
-// android project preferred properties setup
-initAndroidPrefProperties {
-	//  project.properties:
-	//          target
-	// local.properties:
-	//     keystoreDir
-	//     androidsdkDir
-	// gant.properties
-	//
-	//
-	
-	//other properties
-	def sourceDir = "src"
-	
-	def genDir = "gen"
-	
-	def resDir = "res"
-	
-	def assetsDir = "assets"
-	
-	def jarlibsDir = "libs"
-	
-	def nativelibsDir = "libs"
-	
-	def manifestFile = "AndroidManifest.xml"
-	
-	// buildDir is already defined
-	
-	def classersDir = "${buildDir}/classes"
-	
-	def buildresDir = "${buildDir}/res"
-	
-	def buildaidlDir = "${buildDir}/aidl"
-	
-	def builddexedDir = "${buildDir}/dexedLibs"
-	
-	def buildmanifestFile = "${buildDir}/AndroidManifest.xml"
-	
-	//def androidtoolsDir = "${androidsdkDir}/tools"
-	
-	//def androidplatformtoolsDir ="${androidsdkDir}/platform-tools"
-	
-}
-
-// more modulization of init than a typical ant
-// build setup, makes build easy to read and debug
-target(init : 'Setups the build') {
-	proj = loadProperties()
-    printProperties proj
-	checkFileSetProperties
-	inittoolsLocation
-	initAndroid proj.androidsdkDir, proj.target
-	initIvyLibDep
-	initAntTaskDefs
-	initAndroidPrefProperties
-	destDir = createDirs proj.buildDir genDir
-	}
-// I think we need to clean both proj.buildDir and proj.genDir
-target(clean : 'Deletes the  build dir') {
-	proj = loadProperties()
-	deleteDir "${proj.buildDir}", "{proj.genDir}"
-	}
