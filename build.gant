@@ -34,7 +34,7 @@ printProperties = {props ->
 // Careful ${exe} is not windows exe 
 // but the exectuable..in windows 
 // this closure has to have the 
-// executable extnesions
+// executable extensions
 initAndroid = {skdhome, target ->
 	def chk = {dir, exe ->
 	def cmd = "${skdhome}/${dir}/${exe}"
@@ -75,16 +75,80 @@ checkFileSetProperties{
 
 // Setup Ivy managed Lib deps of project
 initIvyLibDeps{
-	
+	def projectlibDir = "lib"
+	def classpathRef= 'docletpathRef'
+	def antclasspathRef = 'anttaskpathRef'
+	ivy.retrieve()
+	ivy.cachepath(conf:'doclet',   pathid : classpathRef )
+	//ivy.cachepath(conf:'anttask',pathid: antclasspathRef)
 }
 
 // Setup ant task defs for the project
 initAntTaskDefs {
+	// we need path setup for emma for its taskdef as its from the 
+	// android sdk install
+	def toolslibDir = "${androidsdkDir}/tools/lib"
 	
+	def emmaJars = Ant.path(id: 'emmaJars'){
+		fileset(dir: toolslibDir) {
+			include(name: 'emma.jar')
+			include(name: 'emma.ant.jar')
+	  }
+	}
+	//<taskdef resource="emma_ant.properties" classpathref="emma.lib" />
+	Ant.taskdef(resource:'emma_ant.properties', classpathref: emmaJars)
+	//android antlibs
+	
+	def androidantlibJar = Ant.path(id: 'androidlibJar'){
+		fileset(dir: toolslibDir){
+			include(name: 'anttasks.jar')
+		}
+	}
+	Ant.taskdef(resource: 'anttasks.properties', classpathref: androidantlibJar)
+	// other taskdefs for any codeqa,etc go below
 }
 
 // android project preferred properties setup
 initAndroidPrefProperties {
+	//  project.properties:
+	//          target
+	// local.properties:
+	//     keystoreDir
+	//     androidsdkDir
+	// gant.properties
+	//
+	//
+	
+	//other properties
+	def sourceDir = "src"
+	
+	def genDir = "gen"
+	
+	def resDir = "res"
+	
+	def assetsDir = "assets"
+	
+	def jarlibsDir = "libs"
+	
+	def nativelibsDir = "libs"
+	
+	def manifestFile = "AndroidManifest.xml"
+	
+	// buildDir is already defined
+	
+	def classersDir = "${buildDir}/classes"
+	
+	def buildresDir = "${buildDir}/res"
+	
+	def buildaidlDir = "${buildDir}/aidl"
+	
+	def builddexedDir = "${buildDir}/dexedLibs"
+	
+	def buildmanifestFile = "${buildDir}/AndroidManifest.xml"
+	
+	def androidtoolsDir = "${androidsdkDir}/tools"
+	
+	def androidplatformtoolsDir ="${androidsdkDir}/platform-tools"
 	
 }
 
@@ -94,7 +158,7 @@ target(init : 'Setups the build') {
 	proj = loadProperties()
     printProperties proj
 	checkFileSetProperties
-	initAndroid proj.androidSkdDir, proj.target
+	initAndroid proj.androidsdkDir, proj.target
 	initIvyLibDep
 	initAntTaskDefs
 	initAndroidPrefProperties
