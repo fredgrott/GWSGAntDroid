@@ -15,13 +15,42 @@
 //  GAnt names are in groovy syntax..ie  camelCase
 //  Ant vars are mostly in camelcase with the exception of 
 //  SDK set vars
+//
+// okay lets make this more ant like
+// differences between this and GWSAntDroid:
+//       using log through Gant/Groovy rather than Log4Ant/Antxtras
+//       ant macros done using groovy
+//       less bootstrap ant taskjars..so farony using antunit
 
+
+// sets default task so we only do gant at commandline to execute
 defaultTargetName = 'init'
 setDefaultTarget ( defaultTargetName )
+// turn on ivy tool
+includeTool << gant.tools.Ivy
+// set up Groovy AntBuilder() to be used throughout the script
+// with the ant namespace
+def ant = new AntBuilder()
+// load the system porps into ant namespace with env prefixes
+ant.property(environment:"env")
+// set TSTAMP, DSTAMP,etc
+ant.tstamp(){
+	format(property:"buildDate",pattern:"yyyy-MM-dd'T'HHmmss")
+}
+//now we put antunit on path and  put it in the ant namespace
+ant.path(id: "antunit.path") {
+	fileset(dir:"build.config/ant.bootstrap"){
+		include(name:"antt-antunit-1.2.jar")
+	}
+}
+import org.apache.tools.ant.taskdefs.Antlib
+def url = this.class.getResource('org/apache/ant/antunit/antlib.xml')
+Antlib.createAntlib(ant.antProject, url, 'antlib:org.apache.ant.antunit').execute()
+// set project Name
+def projectName = ant.property(name: "projectName" , value: "GWSGAntDroid")
 
 
 
-	
 	
 	target(init : 'Setups the build') {
 		// no not using new File we want FileInputStream
