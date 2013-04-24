@@ -48,56 +48,35 @@ def url = this.class.getResource('org/apache/ant/antunit/antlib.xml')
 Antlib.createAntlib(ant.antProject, url, 'antlib:org.apache.ant.antunit').execute()
 // set project Name
 def projectName = ant.property(name: "projectName" , value: "GWSGAntDroid")
+// load property files
+ant.property(file: "local.properties")
+ant.property(file: 'ant.properties')
+ant.property(file: 'project.properties')
+ant.assertFileExists(file:'local.properties')
+ant.assertFileExists(file:'ant.properties')
+ant.assertFileExists(file:'project.properties')
+def props = new Properties()
+new File("local.properties").withInputStream {
+   stream -> props.load(stream)
+}
+new File("project.properties").withInputStream {
+	ourStream -> props.load(ourStream)
+}
+new File("ant.properties").withInputStream {
+	myStream -> props.load(myStream)
+}
+assert  props.("androidsdkDir")
+assert  props.("keystoreDir")
+assert  props.("keyStore")
+assert  props.("keystorePassword")
+assert  props.("keyAlias")
+assert  props.("keyaliasPassword")
+assert  props.("target")
+// assert checkstyle and pmd files 
 
-
-
+// ivy managed deps load them here
 	
-	target(init : 'Setups the build') {
-		// no not using new File we want FileInputStream
-		// local.properties
-		//    androidsdkDir
-		//    keystoreDir
-		//    keyStore
-		//    keyAlias
-		//    keystorePassword
-		//    keyaliasPassword
-		//
-		def props = new Properties()
-		new File("local.properties").withInputStream {
-		   stream -> props.load(stream)
-		}
-		assert  props.("androidsdkDir")
-		assert  props.("keystoreDir")
-		assert  props.("keyStore")
-		assert  props.("keystorePassword")
-		assert  props.("keyAlias")
-		assert  props.("keyaliasPassword")
-		// project.properties
-		
-		new File("project.properties").withInputStream {
-			ourStream -> props.load(ourStream)
-		}
-		assert  props.("target")
-		// ant.properties, remember most of these are blank(null) in
-		// the properties file as they are to be overridden to be used
-		//thus no asserts on them ie:
-		// versionCode
-		// versionName
-		// adbdeviceArg
-		// aaptignoreAssets
-		// aaptresourceFilter
-		//
-		// additional props obviously we have to assert
-		
-		new File("ant.properties").withInputStream {
-			myStream -> props.load(myStream)
-		}
-		// android sdk still uses ant task so we need properties in 
-		// the ant groovy way of things
-		ant.property(file: "local.properties")
-		ant.property(file: 'ant.properties')
-		ant.property(file: 'project.properties')
-		def projectName = ant.property(name: "projectName" , value: "GWSGAntDroid")
+target(init : 'Setups the build') {
 		
 		    
 }
