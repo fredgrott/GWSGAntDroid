@@ -18,9 +18,7 @@
 //
 // okay lets make this more ant like
 // differences between this and GWSAntDroid:
-//       using log through Gant/Groovy rather than Log4Ant/Antxtras
-//       ant macros done using groovy
-//       less bootstrap ant taskjars..so farony using antunit
+
 
 
 // sets default task so we only do gant at commandline to execute
@@ -31,47 +29,46 @@ includeTool << gant.tools.Ivy
 // set up Groovy AntBuilder() to be used throughout the script
 // with the ant namespace
 def ant = new AntBuilder()
+ant.createProject(name: 'GWSGAntDroid')
 // load the system porps into ant namespace with env prefixes
 ant.property(environment:"env")
 // set TSTAMP, DSTAMP,etc
 ant.tstamp(){
 	format(property:"buildDate",pattern:"yyyy-MM-dd'T'HHmmss")
 }
-//now we put antunit on path and  put it in the ant namespace
-ant.path(id: "antunit.path") {
+//put  on ant namespace
+def bootstrapAntPath = "booststrapant.path"
+ant.path(id: bootstrapAntPath) {
 	fileset(dir:"build.config/ant.bootstrap"){
-		include(name:"antt-antunit-1.2.jar")
+		include(name: "jw-log4ant.jar")
+		include(name: "logback-access-1.0.9.jar")
+		include(name: "logback-core-1.0.9.jar")
+		include(name:"logback-classic-1.0.9.jar")
 	}
+	fileset(dir: "build.config.dir/ant.bootstrap/dep"){
+		include(name:"*/lib/*.jar")
+	}
+	pathelelment(location: "build.config.dir/ant.bootstrap/etc")
 }
-import org.apache.tools.ant.taskdefs.Antlib
-def url = this.class.getResource('org/apache/ant/antunit/antlib.xml')
-Antlib.createAntlib(ant.antProject, url, 'antlib:org.apache.ant.antunit').execute()
-// set project Name
-def projectName = ant.property(name: "projectName" , value: "GWSGAntDroid")
+//Several ways to load our antlibs/taskdefs, using this one
+// as we need to prevent namespace clashes as several anttasks from
+// the android sdk overlap antxtras and the anttask from the
+// android sdk do not have an antlib file
+
+import groovy.xml.NamespaceBuilder
+ant.taskdef(uri: "oja", resource: "org/jwaresoftware/antxtras/install/antlib-advanced.xml", classpath: bootstrapAntPath)
+def oja = NamespaceBuilder.newInstance(ant,'oja')
+ant.taskdef(uri: "emit", resource:"org/jwaresoftware/log4ant/install/antlib.xml", classpath: bootstrapAntPath)
+def emit = NamesapceBuilder.newInstance(ant, 'emit')
+
 // load property files
 ant.property(file: "local.properties")
 ant.property(file: 'ant.properties')
 ant.property(file: 'project.properties')
-ant.assertFileExists(file:'local.properties')
-ant.assertFileExists(file:'ant.properties')
-ant.assertFileExists(file:'project.properties')
-def props = new Properties()
-new File("local.properties").withInputStream {
-   stream -> props.load(stream)
-}
-new File("project.properties").withInputStream {
-	ourStream -> props.load(ourStream)
-}
-new File("ant.properties").withInputStream {
-	myStream -> props.load(myStream)
-}
-assert  props.("androidsdkDir")
-assert  props.("keystoreDir")
-assert  props.("keyStore")
-assert  props.("keystorePassword")
-assert  props.("keyAlias")
-assert  props.("keyaliasPassword")
-assert  props.("target")
+
+
+
+
 // assert checkstyle and pmd files 
 
 // ivy managed deps load them here
