@@ -59,20 +59,41 @@ import groovy.xml.NamespaceBuilder
 ant.taskdef(uri: "oja", resource: "org/jwaresoftware/antxtras/install/antlib-advanced.xml", classpath: bootstrapAntPath)
 def oja = NamespaceBuilder.newInstance(ant,'oja')
 ant.taskdef(uri: "emit", resource:"org/jwaresoftware/log4ant/install/antlib.xml", classpath: bootstrapAntPath)
-def emit = NamesapceBuilder.newInstance(ant, 'emit')
+def emit = NamespaceBuilder.newInstance(ant, 'emit')
+oja.vendorinfo(name:"antxtras")
+oja.show(message:"AntXtras: ant.['antxtras.build.label']")
+emit.libcheck
+emit.show(message:"ant.['log4ant.label']")
+emit.show(message:"ant.['slf4j.label']")
+emit.show(message: "ant.['slf4j-impl.label']")
 
 // load property files
 ant.property(file: "local.properties")
 ant.property(file: 'ant.properties')
 ant.property(file: 'project.properties')
+ant.condition(property: "androidsdkDir", value: ant.['env.ANDROID_HOME']){
+	isset(property: ant.['env.ANDROID_HOME'])
+}
+ant.fail(message: "androdsdkDir is missing. Make sure to generate local.properties using 'android update project' or to inject it through the ANDROID_HOME environment variable.",
+	unless: ant.['androidsdkDir'])
 
 
+// ivy managed deps load them here under the ivy namespace
+def docletPath ="doclet.path"
+def.antTaskPath ="anttask.path"
+ivy.retrieve
+ivy.cachepath(pathid: docletPath,conf: "doclet")
+ivy.cachepath(pathid: antTaskPath, conf:"anttask")
+// rest of taskdefs
+ant.taskdef(resource: "checkstyletask.properties",classpath: antTaskPath)
+ant.taskdef(name: "classycleReport",classname: "classycle.ant.ReportTask", classpath: antTaskPath)
+ant.taskdef(name:"classycleDependencyCheck",classname: "classycle.ant.DependencyCheckingTask", classpath: antTaskPath)
+ant.taskdef(name:"javancss",classname: "javancss.JavancssAntTask", classpath: antTaskPath)
+ant.taskdef(name: "pmd", classname:"net.sourceforge.pmd.ant.PMDTask", classpath: antTaskPath)
+ant.taskdef(resource:"com/zutubi/android/ant/antlib.xml",classpaeth: antTaskPath )
 
+// now lets assert our build system the antxtras way
 
-// assert checkstyle and pmd files 
-
-// ivy managed deps load them here
-	
 target(init : 'Setups the build') {
 		
 		    

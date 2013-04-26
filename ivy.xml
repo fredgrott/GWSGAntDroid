@@ -26,9 +26,17 @@
 	</info>
 	<configurations>
 	    <conf name="doclet"/>
+	    <conf name="anttask"/>
 	</configurations>
 	<dependencies>
 	     <dependency org="gws.grottworkshop" name="gwsdroidlava" rev="1.0" conf="doclet"/>
 	     <dependency org="ydoc" name="ydoc" rev="3.0.02" conf="doclet"/>
+	     <dependency org="com.puppycrawl" name="checkstyle" rev="5.6.0" conf="anttask"/>
+	     <dependency org="classycle" name="classycle" rev="1.4.1" conf="anttask"/>
+	     <dependency org="javancss" name="javancss" rev="32.53" conf="anttask"/>
+	     <dependency org="jdepend" name="jdepend" rev="2.9.1" conf="anttask"/>
+	     <dependency org="net.sourceforge.pmd" name="pmd" rev="5.0.2" conf="anttask"/>
+	     <dependency org="com.zutubi" name="androidant" rev="0.7.13" conf="anttask"/>
+	     
 	</dependencies>
 </ivy-module>
